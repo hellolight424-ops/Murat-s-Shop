@@ -1731,6 +1731,33 @@
             transform: rotate(4deg);
         }
 
+        .product-modal-image-wrap {
+            width: 100%;
+            height: 220px;
+            margin: 0 0 22px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(99,102,241,.08));
+        }
+
+        .product-modal-image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-modal-image-wrap.image-fallback {
+            display: grid;
+            place-items: center;
+            color: #c4b5fd;
+            font-size: 62px;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(167,139,250,.25), transparent 45%),
+                linear-gradient(135deg, #171326, #09090d);
+        }
+
         .product-modal-category {
             display: inline-flex;
             align-items: center;
@@ -3139,6 +3166,11 @@
         <div class="product-modal-card" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
             <button class="product-modal-close" id="productModalClose" type="button" aria-label="Sluiten">×</button>
 
+            <div class="product-modal-image-wrap" id="productModalImageWrap">
+                <img class="product-modal-image" id="productModalImage"
+                     src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85"
+                     alt="Product afbeelding">
+            </div>
             <div class="product-modal-category" id="productModalCategory">Product</div>
             <h3 class="product-modal-title" id="productModalTitle">Product</h3>
             <p class="product-modal-description" id="productModalDescription"></p>
@@ -3490,6 +3522,8 @@
         const productModal = document.getElementById("productModal");
         const productModalClose = document.getElementById("productModalClose");
         const productModalSecondary = document.getElementById("productModalSecondary");
+        const productModalImage = document.getElementById("productModalImage");
+        const productModalImageWrap = document.getElementById("productModalImageWrap");
         const productModalTitle = document.getElementById("productModalTitle");
         const productModalDescription = document.getElementById("productModalDescription");
         const productModalPrice = document.getElementById("productModalPrice");
@@ -3574,6 +3608,43 @@
         function openProductModal(item) {
             const data = getProductData(item);
 
+            // Gebruik een echte productafbeelding uit de kaart als die bestaat.
+            // Anders tonen we een passende illustratieve afbeelding per productsoort.
+            const cardImage = item.querySelector("img");
+            const categoryText = `${data.category} ${data.name}`.toLowerCase();
+            const fallbackImages = [
+                {
+                    match: /welcome|welcomer|ledenlijst|community/,
+                    src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=85"
+                },
+                {
+                    match: /ticket|support|panel/,
+                    src: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=85"
+                },
+                {
+                    match: /source|index|command|code|bot|script|deploy/,
+                    src: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85"
+                }
+            ];
+            const imageMatch = fallbackImages.find(entry => entry.match.test(categoryText));
+            const imageSrc = cardImage?.currentSrc || cardImage?.src || imageMatch?.src;
+
+            if (imageSrc) {
+                productModalImageWrap.classList.remove("image-fallback");
+                productModalImage.style.display = "block";
+                productModalImage.src = imageSrc;
+                productModalImage.alt = `Afbeelding van ${data.name}`;
+                productModalImage.onerror = () => {
+                    productModalImage.style.display = "none";
+                    productModalImageWrap.classList.add("image-fallback");
+                    productModalImageWrap.textContent = "💻";
+                };
+            } else {
+                productModalImage.style.display = "none";
+                productModalImageWrap.classList.add("image-fallback");
+                productModalImageWrap.textContent = "🤖";
+            }
+
             productModalTitle.textContent = data.name;
             productModalDescription.textContent = data.description;
             productModalPrice.textContent = data.price;
@@ -3653,5 +3724,31 @@
 
     </script>
 
+<!-- Best-effort deterrent only: browser source/devtools cannot be securely blocked by a website. -->
+<script>
+(() => {
+  // Disable the right-click context menu as a basic deterrent.
+  document.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+  });
+
+  // Block common keyboard shortcuts used to open source/devtools.
+  document.addEventListener('keydown', (event) => {
+    const key = (event.key || '').toLowerCase();
+    const ctrlOrMeta = event.ctrlKey || event.metaKey;
+
+    const blocked =
+      key === 'f12' ||
+      (ctrlOrMeta && key === 'u') ||
+      (ctrlOrMeta && key === 's') ||
+      (ctrlOrMeta && event.shiftKey && ['i', 'j', 'c', 'k'].includes(key));
+
+    if (blocked) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+})();
+</script>
 </body>
 </html>
